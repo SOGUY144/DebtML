@@ -9,10 +9,10 @@ from ml_core import train_models
 
 app = FastAPI(title="DebtML API", version="1.0.0")
 
-# Enable CORS for local development (Next.js runs on 3000)
+# Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
