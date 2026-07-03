@@ -12,7 +12,8 @@ export default function DeepDivePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/provinces')
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    fetch(`${apiUrl}/api/provinces`)
       .then(res => res.json())
       .then(d => {
         setProvinces(d.provinces);
@@ -22,7 +23,8 @@ export default function DeepDivePage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`http://127.0.0.1:8000/api/province/${encodeURIComponent(selectedProv)}`)
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    fetch(`${apiUrl}/api/province/${encodeURIComponent(selectedProv)}`)
       .then(res => res.json())
       .then(d => {
         setData(d);

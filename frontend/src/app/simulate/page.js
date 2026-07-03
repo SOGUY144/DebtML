@@ -14,7 +14,8 @@ export default function SimulatePage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/provinces')
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    fetch(`${apiUrl}/api/provinces`)
       .then(res => res.json())
       .then(d => setProvinces(d.provinces))
       .catch(console.error);
@@ -24,7 +25,8 @@ export default function SimulatePage() {
     if (!selectedProv) return;
     
     setLoading(true);
-    fetch('http://127.0.0.1:8000/api/models/simulate', {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    fetch(`${apiUrl}/api/models/simulate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
