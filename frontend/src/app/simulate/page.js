@@ -139,6 +139,9 @@ export default function SimulatePage() {
           )}
         </div>
       </div>
+      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '1rem', fontStyle: 'italic' }}>
+        *โมเดลนี้ calibrate จากข้อมูลที่ส่วนใหญ่เป็น Stable อาจ underestimate ความเสี่ยงในสถานการณ์สุดขีด*
+      </div>
     </div>
   );
 }

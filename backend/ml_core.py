@@ -105,19 +105,19 @@ def load_and_prepare_data():
 
     df_panel["Year_prev"] = grp["Year"].shift(1)
     df_panel["gap"] = df_panel["Year"] - df_panel["Year_prev"]
-    df_panel["Debt_lag1"] = grp["Debt"].shift(1)
-    df_panel["Income_lag1"] = grp["Income"].shift(1)
-    df_panel["DTI_lag1"] = grp["DTI"].shift(1)
+    df_panel["Debt_lag"] = grp["Debt"].shift(1)
+    df_panel["Income_lag"] = grp["Income"].shift(1)
+    df_panel["DTI_lag"] = grp["DTI"].shift(1)
 
     growth_gap = grp["gap"].shift(1)
-    debt_lag1_prev = grp["Debt_lag1"].shift(1)
-    income_lag1_prev = grp["Income_lag1"].shift(1)
+    debt_lag_prev = grp["Debt_lag"].shift(1)
+    income_lag_prev = grp["Income_lag"].shift(1)
 
     df_panel["Debt_growth_ann"] = annualized_growth(
-        df_panel["Debt_lag1"], debt_lag1_prev, growth_gap
+        df_panel["Debt_lag"], debt_lag_prev, growth_gap
     )
     df_panel["Income_growth_ann"] = annualized_growth(
-        df_panel["Income_lag1"], income_lag1_prev, growth_gap
+        df_panel["Income_lag"], income_lag_prev, growth_gap
     )
 
     # --- One-hot encode Region ---
@@ -155,14 +155,22 @@ def train_models():
     train_df = df_model[df_model["Year"] < TEST_YEAR]
     test_df = df_model[df_model["Year"] == TEST_YEAR]
 
-    X_train = train_df[feature_cols]
+    import joblib
+    
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    scaler = joblib.load(os.path.join(base_dir, 'scaler.pkl'))
+
+    X_train = train_df[feature_cols].astype(float)
     y_train = train_df["Label"]
-    X_test = test_df[feature_cols]
+    X_test = test_df[feature_cols].astype(float)
     y_test = test_df["Label"]
+    
+    X_train_scaled = pd.DataFrame(scaler.transform(X_train), columns=feature_cols)
+    X_test_scaled = pd.DataFrame(scaler.transform(X_test), columns=feature_cols)
 
     # --- Logistic Regression ---
     log_reg = LogisticRegression(class_weight="balanced", max_iter=1000, random_state=42)
-    log_reg.fit(X_train, y_train)
+    log_reg.fit(X_train_scaled, y_train)
 
     # --- Random Forest ---
     rf_model = RandomForestClassifier(n_estimators=300, max_depth=5, class_weight="balanced", random_state=42)
@@ -188,8 +196,13 @@ def train_models():
     # --- Evaluation ---
     results = {}
     for name, model in models.items():
-        y_pred = model.predict(X_test)
-        y_prob = model.predict_proba(X_test)[:, 1]
+        if name == "Logistic Regression":
+            X_eval = X_test_scaled
+        else:
+            X_eval = X_test
+            
+        y_pred = model.predict(X_eval)
+        y_prob = model.predict_proba(X_eval)[:, 1]
         cr = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
         cm = confusion_matrix(y_test, y_pred)
 
@@ -211,6 +224,7 @@ def train_models():
 
     return {
         "models": models,
+        "scaler": scaler,
         "results": results,
         "feature_cols": feature_cols,
         "df_panel": df_panel,

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { BarChart3, Activity, Layers, ActivitySquare, ServerCrash } from "lucide-react";
 
 export const metadata = {
-  title: "DebtML — Policy Dashboard",
+  title: "DTI ML — Policy Dashboard",
   description: "Household debt risk analysis dashboard for policy makers",
 };
 
@@ -23,7 +23,7 @@ export default function RootLayout({ children }) {
           }}>
             <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
               <h1 className="outfit" style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>
-                Debt<span style={{ color: 'var(--accent)' }}>ML</span>
+                DTI <span style={{ color: 'var(--accent)' }}>ML</span>
               </h1>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', letterSpacing: '1px', textTransform: 'uppercase' }}>
                 Command Center

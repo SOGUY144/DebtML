@@ -134,17 +134,23 @@ def simulate(req: SimulateRequest):
     sim_income = float(sim_df["Annual_Income"].iloc[0]) * (1 + req.income_growth)
     sim_dti = sim_debt / sim_income if sim_income > 0 else 0
     sim_df["DTI"] = sim_dti
-    sim_df["DTI_lag1"] = base_data["DTI"]
+    sim_df["DTI_lag"] = base_data["DTI"]
     
     # Keep only feature cols for prediction
     sim_features = sim_df[feature_cols].copy()
     for col in feature_cols:
         sim_features[col] = pd.to_numeric(sim_features[col], errors="coerce").fillna(0)
         
+    scaler = ML_CONTEXT["scaler"]
     results = {}
     for name, model in models.items():
-        pred = int(model.predict(sim_features)[0])
-        prob = float(model.predict_proba(sim_features)[0][1])
+        if name == "Logistic Regression":
+            sim_features_eval = pd.DataFrame(scaler.transform(sim_features), columns=feature_cols)
+        else:
+            sim_features_eval = sim_features
+            
+        pred = int(model.predict(sim_features_eval)[0])
+        prob = float(model.predict_proba(sim_features_eval)[0][1])
         results[name] = {
             "prediction": pred,
             "status": "High-Risk" if pred == 1 else "Stable",
