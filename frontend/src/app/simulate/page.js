@@ -1,17 +1,32 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import MetricCard from '@/components/MetricCard';
 import StatusBadge from '@/components/StatusBadge';
+
+// How long to wait after the user stops moving a slider before we call the API.
+const DEBOUNCE_MS = 400;
 
 export default function SimulatePage() {
   const [provinces, setProvinces] = useState([]);
   const [selectedProv, setSelectedProv] = useState('กรุงเทพมหานคร');
+
+  // Values shown in the UI update instantly as the slider is dragged.
   const [debtGrowth, setDebtGrowth] = useState(0);
   const [incomeGrowth, setIncomeGrowth] = useState(0);
-  
+
+  // Debounced values are what actually get sent to the API, so we don't
+  // fire a request for every single tick while the user is still dragging.
+  const [debouncedDebtGrowth, setDebouncedDebtGrowth] = useState(0);
+  const [debouncedIncomeGrowth, setDebouncedIncomeGrowth] = useState(0);
+
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Tracks the most recently fired request so late/out-of-order responses
+  // from earlier requests get ignored instead of overwriting a newer result
+  // (this is what was causing the predicted numbers to "flicker").
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -21,30 +36,53 @@ export default function SimulatePage() {
       .catch(console.error);
   }, []);
 
+  // Debounce: only update the "real" values once the sliders have been
+  // still for DEBOUNCE_MS. Rapid changes while dragging get collapsed
+  // into a single update.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedDebtGrowth(debtGrowth);
+      setDebouncedIncomeGrowth(incomeGrowth);
+    }, DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [debtGrowth, incomeGrowth]);
+
   useEffect(() => {
     if (!selectedProv) return;
-    
+
+    const currentRequestId = ++requestIdRef.current;
+    const controller = new AbortController();
+
     setLoading(true);
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
     fetch(`${apiUrl}/api/models/simulate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({
         province: selectedProv,
-        debt_growth: debtGrowth / 100,
-        income_growth: incomeGrowth / 100
+        debt_growth: debouncedDebtGrowth / 100,
+        income_growth: debouncedIncomeGrowth / 100
       })
     })
       .then(res => res.json())
       .then(d => {
+        // Ignore this response if a newer request has already been fired -
+        // prevents an older, slower response from clobbering a fresher one.
+        if (currentRequestId !== requestIdRef.current) return;
         setResult(d);
         setLoading(false);
       })
       .catch(e => {
+        if (e.name === 'AbortError') return;
+        if (currentRequestId !== requestIdRef.current) return;
         console.error(e);
         setLoading(false);
       });
-  }, [selectedProv, debtGrowth, incomeGrowth]);
+
+    return () => controller.abort();
+  }, [selectedProv, debouncedDebtGrowth, debouncedIncomeGrowth]);
 
   return (
     <div className="slide-in">
@@ -108,7 +146,11 @@ export default function SimulatePage() {
           )}
 
           {result && !result.detail && (
-            <>
+            <div style={{
+              opacity: loading ? 0.5 : 1,
+              transition: 'opacity 0.15s ease',
+              pointerEvents: loading ? 'none' : 'auto'
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '2rem' }}>
                 <MetricCard title="DTI จำลอง (Simulated)" value={result.simulated_dti.toFixed(2)} highlight={result.simulated_dti > 1.0} />
                 <div style={{ flex: 1, padding: '1rem 2rem', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', border: '1px dashed var(--card-border)' }}>
@@ -135,7 +177,7 @@ export default function SimulatePage() {
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>

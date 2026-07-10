@@ -92,16 +92,39 @@ def get_model_evaluations():
             "recall_curve": res["recall_curve"]
         })
         
-    # Also return feature importances for Random Forest as an example
-    rf_model = ML_CONTEXT["models"]["Random Forest"]
+    # Feature importances for all 3 models, ordered: Logistic Regression > Random Forest > LightGBM
     feature_cols = ML_CONTEXT["feature_cols"]
-    importances = list(zip(feature_cols, rf_model.feature_importances_))
-    importances.sort(key=lambda x: x[1], reverse=True)
-    top_features = [{"feature": f, "importance": float(v)} for f, v in importances[:15]]
-        
+
+    def build_importance_list(raw_importances):
+        total = float(np.sum(raw_importances))
+        pairs = list(zip(feature_cols, raw_importances))
+        pairs.sort(key=lambda x: x[1], reverse=True)
+        return [
+            {"feature": f, "importance": float(v) / total if total > 0 else 0.0}
+            for f, v in pairs[:15]
+        ]
+
+    log_reg_model = ML_CONTEXT["models"]["Logistic Regression"]
+    rf_model = ML_CONTEXT["models"]["Random Forest"]
+    lgb_model = ML_CONTEXT["models"]["LightGBM"]
+
+    # Logistic Regression: coefficients aren't inherently "importances", so we
+    # use the absolute value of the (scaled-feature) coefficients as a proxy.
+    lr_top_features = build_importance_list(np.abs(log_reg_model.coef_[0]))
+    rf_top_features = build_importance_list(rf_model.feature_importances_)
+    lgb_top_features = build_importance_list(lgb_model.feature_importances_)
+
+    feature_importances = [
+        {"model_name": "Logistic Regression", "top_features": lr_top_features},
+        {"model_name": "Random Forest", "top_features": rf_top_features},
+        {"model_name": "LightGBM", "top_features": lgb_top_features},
+    ]
+
     return {
         "evaluations": evals,
-        "top_features": top_features
+        # Kept for backwards compatibility with any older frontend build
+        "top_features": rf_top_features,
+        "feature_importances": feature_importances
     }
 
 class SimulateRequest(BaseModel):
