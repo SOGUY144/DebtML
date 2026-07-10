@@ -134,26 +134,25 @@ export default function ModelsPage() {
       })}
 
       {/* 3. Feature Importances - Logistic Regression > Random Forest > LightGBM */}
+      <h3 className="outfit" style={{ fontSize: '1.4rem', marginBottom: '1rem' }}>
+        ปัจจัยสำคัญที่สุด (Feature Importances)
+      </h3>
       {(data.feature_importances || []).map(fi => (
-        <div key={`${fi.model_name}-importances`}>
-          <h3 className="outfit" style={{ fontSize: '1.4rem', marginTop: '2rem', marginBottom: '1rem' }}>
-            ปัจจัยสำคัญที่สุด (Feature Importances - {fi.model_name})
-          </h3>
-          <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '3rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              {fi.top_features.map((feat, idx) => (
-                <div key={feat.feature} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '30px', color: 'var(--text-secondary)' }}>#{idx + 1}</div>
-                  <div style={{ flex: 1, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{feat.feature.replace(/1$/, '')}</div>
-                  <div style={{ width: '100px', background: 'rgba(255,255,255,0.1)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{ width: `${(feat.importance * 100).toFixed(0)}%`, background: 'var(--accent)', height: '100%' }}></div>
-                  </div>
-                  <div style={{ width: '45px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    {feat.importance.toFixed(3)}
-                  </div>
+        <div key={`${fi.model_name}-importances`} className="glass-card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+          <h4 style={{ color: 'var(--text-primary)', marginBottom: '1rem', paddingLeft: '1rem' }}>{fi.model_name}</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', padding: '0 1rem 1rem' }}>
+            {fi.top_features.map((feat, idx) => (
+              <div key={feat.feature} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ width: '30px', color: 'var(--text-secondary)' }}>#{idx + 1}</div>
+                <div style={{ flex: 1, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{feat.feature.replace(/1$/, '')}</div>
+                <div style={{ width: '100px', background: 'rgba(255,255,255,0.1)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: `${(feat.importance * 100).toFixed(0)}%`, background: 'var(--accent)', height: '100%' }}></div>
                 </div>
-              ))}
-            </div>
+                <div style={{ width: '45px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {feat.importance.toFixed(3)}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       ))}
